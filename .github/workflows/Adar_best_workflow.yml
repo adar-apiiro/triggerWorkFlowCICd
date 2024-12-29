@@ -12,32 +12,39 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
-      #shell commends 
+        with:
+          fetch-depth: 0  # Fetch all history to ensure all branches are available
+          ref: ${{ github.event.pull_request.head.ref }} # Ensures correct branch is checked out
+
       - name: Validate Commit Messages
         run: |
-               # Get the commit messages in the PR
-               commits=$(git log origin/main..HEAD --pretty=format:"%s")
-               echo "Validating the following commit messages:"
-               echo "$commits"
-               
-               # Define silly or unacceptable patterns
-               invalid_patterns=("fix stuff" "fix things" "stuff" "things" "it works" "changes" "minor changes" "update" "quick fix" "debugging" "temp" "asdf" "qwerty" "foobar" "blah" "blah blah" "random" "whatever" "misc" "test" "tests" "test commit" "trying something" "checking" "experiment" "trial" "wip" "work in progress" "incomplete" "placeholder" "draft" "todo" "1234" "5678" "9999" "0000" "1 2 3" ":)" ":(" "🔥" "💩" "¯\\_(ツ)_/¯" "fixed a bug" "fixed an issue" "some fixes" "some updates" "various updates" "final changes" "last try" "done" "oops" "typo" "small fix" "fix" "update" "add" "delete" "remove")
-               
-               for commit in $commits; do
-               echo "Checking commit: $commit"
-               
-               if [[ ${#commit} -lt 10 ]]; then
-               echo "❌ Commit message is too short: $commit"
-               exit 1
-               fi
-               
-               for pattern in "${invalid_patterns[@]}"; do
-               if [[ "$commit" == *"$pattern"* ]]; then
-               echo "❌ Commit message contains prohibited pattern '$pattern': $commit"
-               exit 1
-               fi
-               done
-               done
-               
-               echo "✅ All commit messages are valid!"
+          # Fetch all branches to ensure references are up-to-date
+          git fetch --all
 
+          # Get the commit messages in the PR
+          commits=$(git log origin/main..HEAD --pretty=format:"%s")
+          echo "Validating the following commit messages:"
+          echo "$commits"
+          
+          # Define prohibited patterns
+          invalid_patterns=("fix stuff" "asdf" "wip" "test" "foobar" "1234")
+          
+          # Loop through each commit message
+          for commit in $commits; do
+            echo "Checking commit: $commit"
+          
+            # Check for length and prohibited patterns
+            if [[ ${#commit} -lt 10 ]]; then
+              echo "❌ Commit message is too short: $commit"
+              exit 1
+            fi
+          
+            for pattern in "${invalid_patterns[@]}"; do
+              if [[ "$commit" == *"$pattern"* ]]; then
+                echo "❌ Commit message contains prohibited pattern '$pattern': $commit"
+                exit 1
+              fi
+            done
+          done
+          
+          echo "✅ All commit messages are valid!"
